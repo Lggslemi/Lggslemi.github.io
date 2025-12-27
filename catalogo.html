@@ -1,0 +1,34 @@
+<!-- catalogo.html -->
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Catálogo - Blends</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <main>
+    <h1>Catálogo</h1>
+    <div id="list"></div>
+    <p><a href="checkout.html">Ir al checkout</a></p>
+  </main>
+
+  <script src="assets/js/cart.js"></script>
+  <script>
+    // Ejemplo estático de productos (tú lo reemplazas o generas dinámicamente)
+    const PRODUCTS = [
+      {id:'cap-1', name: 'Gorra Negra', price: 25000},
+      {id:'cap-2', name: 'Gorra Blanca', price: 23000}
+    ];
+    const list = document.getElementById('list');
+    list.innerHTML = PRODUCTS.map(p =>
+      `<div>
+        <h3>${p.name}</h3>
+        <p>${p.price}</p>
+        <button onclick='Cart.add({id:"${p.id}",name:"${p.name}",price:${p.price},qty:1}); alert("Añadida");'>Añadir</button>
+      </div>`
+    ).join('');
+  </script>
+</body>
+</html>

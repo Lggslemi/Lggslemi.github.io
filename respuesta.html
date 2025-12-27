@@ -1,0 +1,63 @@
+<!-- respuesta.html -->
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Respuesta - Blends</title>
+  <link rel="stylesheet" href="assets/css/main.css">
+</head>
+<body>
+  <main>
+    <h1 id="status">Procesando respuesta...</h1>
+    <pre id="debug"></pre>
+  </main>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/cart.js"></script>
+  <script src="assets/js/storage.js"></script>
+
+  <script>
+    function getQuery() {
+      // ePayco envía por GET (si configuraste así). Leemos parámetros.
+      return new URLSearchParams(window.location.search);
+    }
+
+    (async function () {
+      const qs = getQuery();
+      const code = qs.get('x_cod_response') || qs.get('x_response') || null;
+      const debug = document.getElementById('debug');
+      debug.textContent = JSON.stringify(Object.fromEntries(qs.entries()), null, 2);
+
+      if (code === '1' || code === 'APPROVED' || code === 'approved') {
+        document.getElementById('status').innerText = '¡Gracias! Tu pago fue exitoso. Registrando pedido...';
+
+        // Extraer datos directamente de la respuesta de ePayco para garantizar correspondencia
+        const datosPedido = {
+          ref_payco: qs.get('x_ref_payco') || qs.get('ref_payco'),
+          estado: qs.get('x_cod_response'),
+          extra1: qs.get('x_extra1') || qs.get('extra1'), // nombre
+          extra2: qs.get('x_extra2') || qs.get('extra2'), // direccion|ciudad
+          extra3: qs.get('x_extra3') || qs.get('extra3'), // telefono
+          email: qs.get('x_customer_email') || qs.get('x_email') || qs.get('email'),
+          total: qs.get('x_amount') || qs.get('amount'),
+          items: qs.get('x_description') || qs.get('description') || ''
+        };
+
+        try {
+          // Llamada al servicio (SheetDB/Make/API)
+          await guardarPedido(datosPedido);
+          // Limpiar carrito solo si el registro fue exitoso
+          Cart.clear();
+          document.getElementById('status').innerText = 'Pedido registrado correctamente. Gracias por tu compra.';
+        } catch (err) {
+          document.getElementById('status').innerText = 'Pago aprobado, pero ocurrió un error al registrar el pedido. Contáctanos.';
+          console.error(err);
+        }
+      } else {
+        document.getElementById('status').innerText = 'Pago NO aprobado o cancelado.';
+      }
+    })();
+  </script>
+</body>
+</html>
