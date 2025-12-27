@@ -1,6 +1,0 @@
-/* assets/css/main.css - base minimal */
-body { font-family: Arial, sans-serif; margin: 1rem; color:#111; }
-h1 { font-size: 1.6rem; margin-bottom: .5rem; }
-label { display: block; margin: .5rem 0; }
-input { padding: .4rem; width: 100%; box-sizing: border-box; }
-button { padding: .6rem 1rem; border:none; background:#222; color:#fff; cursor:pointer; border-radius:6px; }
