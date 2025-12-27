@@ -7,6 +7,5 @@ const CONFIG = {
   // Endpoint que recibe el POST de confirmación (SheetDB / Make / tu backend)
   API_URL: 'https://sheetdb.io/api/v1/vsp6002zg2sm3',
   // URL pública donde ePayco redirige al cliente (AHORA en la raíz del site)
-  // Reemplaza tu-usuario y tu-repo por los reales:
-  RESPONSE_URL: 'https://tu-usuario.github.io/tu-repo/respuesta.html'
+  RESPONSE_URL: 'https://lggslemi.github.io/respuesta.html'
 };
