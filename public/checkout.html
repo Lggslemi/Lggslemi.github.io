@@ -1,0 +1,65 @@
+<!-- public/checkout.html -->
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Checkout - Blends</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+  <main>
+    <h1>Checkout</h1>
+    <form id="checkout-form">
+      <label>Nombre completo<input name="nombre" required></label>
+      <label>Dirección<input name="direccion" required></label>
+      <label>Ciudad<input name="ciudad" required></label>
+      <label>Teléfono<input name="telefono" required></label>
+      <label>Email<input name="email" type="email" required></label>
+      <button id="pay-btn" type="submit">Pagar con ePayco</button>
+    </form>
+
+    <div id="cart-preview"></div>
+  </main>
+
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/cart.js"></script>
+  <script src="../assets/js/payments.js"></script>
+  <!-- ePayco checkout script (oficial) -->
+  <script src="https://checkout.epayco.co/checkout.js"></script>
+
+  <script>
+    // Render simple preview
+    function renderCart() {
+      const p = document.getElementById('cart-preview');
+      const items = Cart.list();
+      if (!items.length) { p.innerHTML = '<p>Carrito vacío</p>'; return; }
+      p.innerHTML = items.map(i => `<div>${i.name} x${i.qty} - ${i.price}</div>`).join('');
+      p.innerHTML += `<p>Total: ${Cart.total()}</p>`;
+    }
+    renderCart();
+
+    document.getElementById('checkout-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      // Validación simple
+      const form = e.target;
+      const data = {
+        nombre: form.nombre.value.trim(),
+        direccion: form.direccion.value.trim(),
+        ciudad: form.ciudad.value.trim(),
+        telefono: form.telefono.value.trim(),
+        email: form.email.value.trim()
+      };
+
+      // NO llamar a guardarPedido aquí según tu requisito. Solo abrir checkout.
+      const items = Cart.list();
+      if (items.length === 0) {
+        alert('El carrito está vacío');
+        return;
+      }
+
+      iniciarPagoEpayco(data, items);
+    });
+  </script>
+</body>
+</html>
