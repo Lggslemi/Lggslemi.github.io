@@ -1,63 +1,57 @@
 // assets/js/payments.js
-// Lógica para iniciar checkout ePayco y generar descripcionPedido y campos extra.
 
-// Dependencia: incluye en las páginas:
-// <script src="https://checkout.epayco.co/checkout.js"></script>
-
+/**
+ * Genera un texto simple con los productos del carrito
+ */
 function crearDescripcionPedido(items) {
-  // items: [{id,name,price,qty},...]
   return items.map(it => `${it.name} (x${it.qty})`).join(', ');
 }
 
 /**
- * iniciarPagoEpayco
- * formData: {nombre, direccion, ciudad, telefono, email}
- * items: cart items
+ * Inicia el checkout de ePayco usando el método de Modal (ventana flotante)
+ * Esto evita errores de CloudFront/GitHub Pages.
  */
 function iniciarPagoEpayco(formData, items) {
   const descripcionPedido = crearDescripcionPedido(items);
-  const amount = items.reduce((s,i)=> s + i.price * i.qty, 0);
+  const amount = items.reduce((s, i) => s + i.price * i.qty, 0);
 
-  // Creamos un formulario dinámico que ePayco espera (onepage checkout)
-  const form = document.createElement('form');
-  form.setAttribute('method', 'POST'); // ePayco abrirá la ventana del checkout
-  form.setAttribute('action', 'https://checkout.epayco.co/checkout'); // script lo maneja
-  form.style.display = 'none';
+  // 1. Configuramos el manejador de ePayco con tu llave pública
+  const handler = ePayco.checkout.configure({
+    key: CONFIG.EPAYCO_PUBLIC_KEY,
+    test: CONFIG.EPAYCO_TEST
+  });
 
-  // Campos obligatorios / recomendados (según docs)
-  const addHidden = (name, value) => {
-    const i = document.createElement('input');
-    i.type = 'hidden';
-    i.name = name;
-    i.value = value;
-    form.appendChild(i);
+  // 2. Definimos los datos del pago y del cliente
+  const data = {
+    // Datos del producto
+    name: "Blends - Pedido de Gorras",
+    description: descripcionPedido,
+    currency: CONFIG.CURRENCY.toLowerCase(), // ePayco prefiere minúsculas (cop)
+    amount: amount.toString(),
+    tax_base: "0",
+    tax: "0",
+    country: CONFIG.COUNTRY.toLowerCase(),
+    lang: "es",
+
+    // Datos del cliente y envío (EXTRAS para tu Excel)
+    external: "false", 
+    extra1: formData.nombre || '',                      // Nombre en el Excel
+    extra2: `${formData.direccion} | ${formData.ciudad}`, // Dirección en el Excel
+    extra3: formData.telefono || '',                    // Teléfono en el Excel
+    
+    // Datos de facturación para la pasarela
+    email_billing: formData.email,
+    name_billing: formData.nombre,
+    address_billing: formData.direccion,
+
+    // Redirecciones (URLs que configuraste en config.js)
+    response: CONFIG.RESPONSE_URL,
+    confirmation: CONFIG.API_URL, 
+    
+    // Método para el envío de datos a SheetDB
+    method: "POST"
   };
 
-  addHidden('public_key', CONFIG.EPAYCO_PUBLIC_KEY);
-  addHidden('amount', amount.toString());
-  addHidden('name', 'Blends - Pedido');
-  addHidden('description', descripcionPedido);
-  addHidden('currency', CONFIG.CURRENCY);
-  addHidden('country', CONFIG.COUNTRY);
-  addHidden('test', CONFIG.EPAYCO_TEST ? 'true' : 'false');
-
-  // EXTRAS (se especifican en la solicitud). Guardamos Nombre, Direccion+Ciudad y Telefono.
-  addHidden('extra1', formData.nombre || '');
-  addHidden('extra2', `${formData.direccion || ''} | ${formData.ciudad || ''}`);
-  addHidden('extra3', formData.telefono || '');
-  // Email para notificaciones
-  addHidden('email', formData.email || '');
-
-  // URLs: respuesta visible al cliente (GET) y confirmation (POST) -> confirmation debe apuntar a tu API/SheetDB
-  addHidden('response', CONFIG.RESPONSE_URL);
-  addHidden('confirmation', CONFIG.API_URL);
-
-  // Agregamos el form temporal al body, lo activamos (ePayco script lo detecta)
-  document.body.appendChild(form);
-
-  // Si usas el checkout.js de ePayco, normalmente se dispara por submit
-  form.submit();
-
-  // Clean up (opcional, no antes de submit)
-  setTimeout(()=> form.remove(), 2000);
+  // 3. Abrimos la ventana de pago
+  handler.open(data);
 }
