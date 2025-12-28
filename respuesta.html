@@ -1,4 +1,3 @@
-<!-- respuesta.html -->
 <!doctype html>
 <html lang="es">
 <head>
@@ -10,7 +9,7 @@
 <body>
   <main>
     <h1 id="status">Procesando respuesta...</h1>
-    <pre id="debug"></pre>
+    <div id="debug"></div>
   </main>
 
   <script src="assets/js/config.js"></script>
@@ -18,44 +17,62 @@
   <script src="assets/js/storage.js"></script>
 
   <script>
+    // Función para leer la URL
     function getQuery() {
-      // ePayco envía por GET (si configuraste así). Leemos parámetros.
       return new URLSearchParams(window.location.search);
     }
 
     (async function () {
       const qs = getQuery();
-      const code = qs.get('x_cod_response') || qs.get('x_response') || null;
-      const debug = document.getElementById('debug');
-      debug.textContent = JSON.stringify(Object.fromEntries(qs.entries()), null, 2);
+      // Captura la referencia de ePayco
+      const ref = qs.get('ref_payco') || qs.get('x_ref_payco');
+      const statusElement = document.getElementById('status');
 
-      if (code === '1' || code === 'APPROVED' || code === 'approved') {
-        document.getElementById('status').innerText = '¡Gracias! Tu pago fue exitoso. Registrando pedido...';
+      if (!ref) {
+        statusElement.innerText = 'No se encontró referencia de pago.';
+        return;
+      }
 
-        // Extraer datos directamente de la respuesta de ePayco para garantizar correspondencia
-        const datosPedido = {
-          ref_payco: qs.get('x_ref_payco') || qs.get('ref_payco'),
-          estado: qs.get('x_cod_response'),
-          extra1: qs.get('x_extra1') || qs.get('extra1'), // nombre
-          extra2: qs.get('x_extra2') || qs.get('extra2'), // direccion|ciudad
-          extra3: qs.get('x_extra3') || qs.get('extra3'), // telefono
-          email: qs.get('x_customer_email') || qs.get('x_email') || qs.get('email'),
-          total: qs.get('x_amount') || qs.get('amount'),
-          items: qs.get('x_description') || qs.get('description') || ''
-        };
+      try {
+        // 1. Consultamos a ePayco el estado REAL de esa referencia
+        const response = await fetch(`https://api.secure.payco.co/validation/v1/reference/${ref}`);
+        const resData = await response.json();
 
-        try {
-          // Llamada al servicio (SheetDB/Make/API)
-          await guardarPedido(datosPedido);
-          // Limpiar carrito solo si el registro fue exitoso
-          Cart.clear();
-          document.getElementById('status').innerText = 'Pedido registrado correctamente. Gracias por tu compra.';
-        } catch (err) {
-          document.getElementById('status').innerText = 'Pago aprobado, pero ocurrió un error al registrar el pedido. Contáctanos.';
-          console.error(err);
+        if (resData.success && resData.data) {
+          const p = resData.data;
+          // x_cod_response: 1=Aceptado, 2=Rechazado, 3=Pendiente, 4=Fallido
+          const codRes = parseInt(p.x_cod_response);
+
+          if (codRes === 1) {
+            statusElement.innerText = '¡Pago aprobado! Registrando en el sistema...';
+
+            // 2. Preparamos los datos EXACTOS para SheetDB
+            // IMPORTANTE: Estos nombres deben ser iguales a los encabezados de tu Excel
+            const datosPedido = {
+              ref_payco: p.x_ref_payco,
+              estado: p.x_response,
+              extra1: p.x_extra1,      // Nombre
+              extra2: p.x_extra2,      // Dirección | Ciudad
+              extra3: p.x_extra3,      // Teléfono
+              email: p.x_customer_email || p.x_email,
+              total: p.x_amount,
+              items: p.x_description   // Las gorras compradas
+            };
+
+            // 3. Enviamos a SheetDB usando la función de storage.js
+            await guardarPedido(datosPedido);
+            
+            statusElement.innerText = '¡Pedido registrado con éxito en Google Sheets!';
+            Cart.clear(); // Limpiamos el carrito local
+          } else {
+            statusElement.innerText = `Estado del pago: ${p.x_response} (Código: ${codRes})`;
+          }
+        } else {
+          statusElement.innerText = 'No se pudo validar la información con ePayco.';
         }
-      } else {
-        document.getElementById('status').innerText = 'Pago NO aprobado o cancelado.';
+      } catch (err) {
+        statusElement.innerText = 'Error en la comunicación con el sistema.';
+        console.error(err);
       }
     })();
   </script>
