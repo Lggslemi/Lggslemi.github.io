@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login — Blends</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Inicia sesión</h1>
+    <form id="login-form" class="card">
+      <label>Email <input name="email" type="email" required></label>
+      <label>Contraseña <input name="password" type="password" required></label>
+      <button type="submit" class="btn">Entrar</button>
+    </form>
+    <div class="card">
+      <button id="google-signin" class="btn outline">Continuar con Google</button>
+    </div>
+  </main>
+  <script src="/assets/js/config.js"></script>
+  <script src="/assets/js/auth.js"></script>
+</body>
+</html>

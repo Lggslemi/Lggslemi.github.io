@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Checkout — Blends</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a href="/index.html" class="brand">Blends</a>
+  </header>
+
+  <main class="container">
+    <h1>Finalizar Compra</h1>
+    
+    <div class="grid">
+      <section>
+        <h2>Tu Carrito</h2>
+        <div id="cart-area" class="card">
+          <p>Cargando productos...</p>
+        </div>
+      </section>
+
+      <section>
+        <form id="customer-form" class="card">
+          <h2>Datos de envío</h2>
+          <div class="input-group">
+            <label>Nombre completo</label>
+            <input name="name" type="text" placeholder="Ej: Juan Pérez" required>
+          </div>
+          <div class="input-group">
+            <label>Dirección y Ciudad</label>
+            <input name="address" type="text" placeholder="Calle 123 #45-67, Bogotá" required>
+          </div>
+          <div class="input-group">
+            <label>Teléfono de contacto</label>
+            <input name="phone" type="tel" placeholder="3001234567" required>
+          </div>
+          
+          <button id="pay-button" type="submit" class="btn primary full-width" style="margin-top: 20px;">
+            Pagar con ePayco
+          </button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <script src="/assets/js/config.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/cart.js"></script>
+  <script src="/assets/js/payments.js"></script>
+
+  <script>
+    document.getElementById('customer-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('pay-button');
+      
+      // 1. Validar Sesión de Firebase
+      if (!window.currentUser) {
+        alert('Debes iniciar sesión para guardar tu pedido y proceder al pago.');
+        window.location.href = '/public/login.html';
+        return;
+      }
+
+      // 2. Validar Carrito
+      const cartSnapshot = await window.Cart.getSnapshot();
+      if (!cartSnapshot || cartSnapshot.items.length === 0) {
+        alert('El carrito está vacío. Agrega algunos productos primero.');
+        return;
+      }
+
+      // 3. Preparar datos del cliente
+      const formData = new FormData(e.target);
+      const customerData = Object.fromEntries(formData.entries());
+
+      // 4. Bloquear UI y lanzar ePayco
+      btn.disabled = true;
+      btn.textContent = 'Iniciando pasarela segura...';
+
+      try {
+        window.Payments.checkoutWithEpayco({ 
+          cart: cartSnapshot, 
+          customer: customerData 
+        });
+      } catch (error) {
+        alert('Error al conectar con la pasarela de pagos.');
+        btn.disabled = false;
+        btn.textContent = 'Pagar con ePayco';
+      }
+    });
+  </script>
+</body>
+</html>

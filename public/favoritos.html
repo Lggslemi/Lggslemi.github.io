@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Favoritos — Blends</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a href="/index.html" class="brand">Blends</a>
+  </header>
+
+  <main class="container">
+    <h1>Favoritos</h1>
+    <div id="favorites-list">
+      <div class="skeleton skeleton-list"></div>
+    </div>
+  </main>
+
+  <script src="/assets/js/config.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/cart.js"></script>
+  <script>
+    // Cart module maneja favoritos también
+    window.addEventListener('DOMContentLoaded', async () => {
+      const favList = document.getElementById('favorites-list');
+      const snapshot = await window.Cart.getSnapshot();
+      favList.innerHTML = '';
+      if (!snapshot || snapshot.favorites.length === 0) {
+        favList.innerHTML = '<p>No tienes favoritos aún.</p>';
+        return;
+      }
+      snapshot.favorites.forEach(f => {
+        const el = document.createElement('div'); el.className = 'card';
+        el.innerHTML = `<h3>${f.title}</h3><p>Id: ${f.id}</p><div class="card-actions"><button class="btn outline remove-fav" data-id="${f.id}">Eliminar</button></div>`;
+        favList.appendChild(el);
+      });
+
+      favList.addEventListener('click', e => {
+        if (e.target.matches('.remove-fav')) {
+          window.Cart.removeFavorite(e.target.dataset.id);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Producto — Blends</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a href="/index.html" class="brand">Blends</a>
+    <nav>
+      <a href="/public/catalogo.html">Catálogo</a>
+      <a href="/public/checkout.html">Checkout</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div id="product" class="product-detail">
+      <!-- Cargando skeleton -->
+      <div class="skeleton skeleton-img"></div>
+      <div class="skeleton skeleton-text"></div>
+    </div>
+  </main>
+
+  <script src="/assets/js/config.js"></script>
+  <script src="/assets/js/auth.js"></script>
+  <script src="/assets/js/cart.js"></script>
+  <script>
+    // Lee id del query string y renderiza producto (demo)
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id') || 'gorra-001';
+    // Aquí deberías reemplazar por fetch a tu CMS o JSON
+    const demo = { id: 'gorra-001', title: 'Gorra Clásica', price: 25900, img: '/assets/img/gorra1.jpg', desc: 'Calidad premium.' };
+    const container = document.getElementById('product');
+    container.innerHTML = `
+      <img src="${demo.img}" alt="${demo.title}">
+      <h1>${demo.title}</h1>
+      <p class="price">$${(demo.price/100).toFixed(2)}</p>
+      <p>${demo.desc}</p>
+      <div class="product-actions">
+        <label>Cantidad <input id="qty" type="number" min="1" value="1"></label>
+        <button id="add" class="btn">Añadir al carrito</button>
+      </div>
+    `;
+
+    document.getElementById('add').addEventListener('click', () => {
+      const qty = Number(document.getElementById('qty').value) || 1;
+      window.Cart && window.Cart.addItem({ id: demo.id, title: demo.title, price: demo.price, qty });
+    });
+  </script>
+</body>
+</html>

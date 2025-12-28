@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Respuesta de pago — Blends</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Estado de tu pedido</h1>
+    <div id="status-area" class="card">
+      <p id="status-msg">Verificando pago con ePayco, por favor espera...</p>
+      <div id="loader" class="spinner"></div>
+    </div>
+    <div id="actions" style="display:none; margin-top: 20px;">
+        <a href="/index.html" class="btn">Volver al inicio</a>
+    </div>
+  </main>
+
+  <script src="/assets/js/config.js"></script>
+  <script src="/assets/js/storage.js"></script>
+  <script src="/assets/js/cart.js"></script>
+
+  <script>
+    async function verifyAndSave() {
+      const params = new URLSearchParams(location.search);
+      // Obtenemos la referencia de la URL (ePayco la envía al retornar)
+      const ref = params.get('x_ref_payco') || params.get('ref_payco');
+      const statusMsg = document.getElementById('status-msg');
+      const actions = document.getElementById('actions');
+
+      if (!ref) {
+        statusMsg.textContent = 'No se encontró una referencia de pago válida.';
+        actions.style.display = 'block';
+        return;
+      }
+
+      try {
+        // 1. Validar el pago contra la API de ePayco para evitar fraudes
+        const resp = await fetch(`https://secure.epayco.co/validation/v1/reference/${ref}`);
+        const result = await resp.json();
+        
+        if (result.success && result.data) {
+          const p = result.data;
+          const codResponse = String(p.x_cod_response);
+
+          // 2. Verificar si fue Aprobado (1) o Aceptado (3)
+          if (codResponse === '1' || codResponse === '3') {
+            statusMsg.textContent = '¡Pago Aprobado! Estamos registrando tu pedido...';
+
+            // 3. Preparar datos para SheetDB (Asegúrate que estos encabezados existan en tu Excel)
+            const pedidoParaExcel = {
+              Fecha: new Date().toLocaleString('es-CO'),
+              Referencia: p.x_ref_payco,
+              Cliente: p.x_extra1 || 'N/A',
+              Direccion: p.x_extra2 || 'N/A',
+              Telefono: p.x_extra3 || 'N/A',
+              Email: p.x_customer_email,
+              Total: p.x_amount,
+              Productos: p.x_description,
+              Estado: p.x_response
+            };
+
+            // 4. Guardar en Google Sheets vía Storage Service
+            await window.Storage.guardarPedido(pedidoParaExcel);
+
+            // 5. Limpiar carrito en Firebase
+            const interval = setInterval(async () => {
+              if (window.Cart) {
+                clearInterval(interval);
+                await window.Cart.clear();
+                statusMsg.textContent = '¡Gracias! Tu pedido ha sido procesado y el carrito está vacío.';
+                actions.style.display = 'block';
+              }
+            }, 500);
+
+          } else {
+            statusMsg.textContent = 'El pago fue: ' + (p.x_response || 'Rechazado/Pendiente');
+            actions.style.display = 'block';
+          }
+        } else {
+          throw new Error('No se pudo validar con la pasarela.');
+        }
+      } catch (err) {
+        console.error("Error en validación:", err);
+        statusMsg.textContent = 'Hubo un error al confirmar tu pago. Si se realizó el cobro, contáctanos.';
+        actions.style.display = 'block';
+      }
+    }
+
+    // Ejecutar al cargar la página
+    window.addEventListener('load', verifyAndSave);
+  </script>
+</body>
+</html>
